@@ -12,6 +12,13 @@ export const TONGUE_MOVES = [
     instruction: 'Lift your tongue tip to touch the ridge behind your top teeth.',
     arrow: 'up',
     target: { visibility: [0.06, 1], elevation: [0.52, 1] },
+    // Not a phoneme itself, but this is the motor action alveolar sounds
+    // (t, d, s, z, n, l) actually depend on — tagging it lets this feed the
+    // same "by place" dashboard chart as Mirror Mirror/Lip Sync Hero data,
+    // instead of Tongue Tamer practice being invisible to the dashboard.
+    // Manner/voicing are left untagged since no single one applies to a
+    // movement the way it does to an actual sound.
+    place: 'Alveolar',
   },
   {
     id: 'tongue-back',
@@ -24,5 +31,7 @@ export const TONGUE_MOVES = [
     // elevation (opposite of the "up" target) is a more reliable signal
     // than visibility here.
     target: { visibility: [0.04, 1], elevation: [0, 0.42] },
+    // Retraction is the motor action velar sounds (k, g) depend on.
+    place: 'Velar',
   },
 ]

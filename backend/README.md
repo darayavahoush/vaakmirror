@@ -11,13 +11,24 @@ own — see the note in the frontend README about that.
 
 ## Setup
 
-**1. Start Postgres** (via Docker, easiest option):
-```
-docker compose up -d
-```
-This starts Postgres on `localhost:5432` with the credentials already
-matched in `.env.example`. If you'd rather use a Postgres install you
-already have, just point `DATABASE_URL` in `.env` at it instead.
+**1. Get Postgres running.** Two options — use whichever's less friction for you:
+
+- **Local Postgres you already have** (e.g. via Homebrew): create the role
+  and database:
+  ```
+  createuser -s vaakmirror
+  createdb -O vaakmirror vaakmirror
+  psql postgres -c "ALTER ROLE vaakmirror WITH PASSWORD 'vaakmirror';"
+  ```
+  This uses the default port 5432, matching `.env.example`.
+
+- **Docker** (if you'd rather not touch your local Postgres):
+  ```
+  docker compose up -d
+  ```
+  This runs on port 5433 instead of 5432, specifically to avoid clashing
+  with a Postgres you might already have running locally. If you use this
+  path, change the port in `.env` from 5432 to 5433.
 
 **2. Python environment:**
 ```
@@ -69,6 +80,14 @@ on" view instead of a flat table. Thresholds (`MIN_ATTEMPTS_FOR_GAP`,
 `GAP_THRESHOLD` in `app/routers/dashboard.py`) are reasonable starting
 points, not clinically validated — worth revisiting with a speech
 therapist's input once there's real usage data to look at.
+
+When a gap is flagged and a matching exercise exists in the library, the
+dashboard **automatically creates that assignment** (not just a suggestion
+string) — so loading the dashboard is what triggers the "here's your
+homework" step, not a separate manual click. This is a side effect on a GET
+endpoint, which isn't conventional REST; the reasoning and the idempotency
+guard against duplicate assignments are documented in
+`_ensure_assigned()` in `app/routers/dashboard.py`.
 
 ## Not done yet
 

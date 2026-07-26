@@ -190,6 +190,7 @@ export default function TongueTamer() {
                 if (sessionIdRef.current && current) {
                   logAttempt(sessionIdRef.current, {
                     sound_id: current.id,
+                    place: current.place,
                     outcome: 'passed',
                     score,
                   }).catch(() => {})

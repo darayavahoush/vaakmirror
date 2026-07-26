@@ -73,6 +73,40 @@ function idleSway(phase = 0) {
   return Math.sin(performance.now() / 900 + phase) * 0.025
 }
 
+// Short strokes radiating outward from a point — turns a flat-filled blob
+// into something that reads as fur rather than a solid cartoon shape.
+// Stable per-call via `seed` so it doesn't shimmer frame to frame.
+function furTexture(ctx, cx, cy, radius, count, seed, color, spread = Math.PI * 2, baseAngle = 0) {
+  ctx.save()
+  ctx.strokeStyle = color
+  ctx.lineWidth = radius * 0.05
+  ctx.lineCap = 'round'
+  for (let i = 0; i < count; i++) {
+    const a = baseAngle + seeded(seed + i) * spread * 0.5
+    const len = radius * (0.35 + Math.abs(seeded(seed + i + 50)) * 0.35)
+    const startR = radius * 0.35
+    ctx.beginPath()
+    ctx.moveTo(cx + Math.cos(a) * startR, cy + Math.sin(a) * startR)
+    ctx.lineTo(cx + Math.cos(a) * (startR + len), cy + Math.sin(a) * (startR + len))
+    ctx.stroke()
+  }
+  ctx.restore()
+}
+
+// A soft glow built from layered, increasingly transparent circles —
+// avoids ctx.shadowBlur for the same cross-browser-scaling reason as the
+// shadow helper above.
+function glow(ctx, cx, cy, r, color) {
+  ;[1.8, 1.4, 1.0].forEach((mult, i) => {
+    ctx.beginPath()
+    ctx.fillStyle = color
+    ctx.globalAlpha = [0.06, 0.1, 0.16][i]
+    ctx.arc(cx, cy, r * mult, 0, Math.PI * 2)
+    ctx.fill()
+  })
+  ctx.globalAlpha = 1
+}
+
 // A small bright highlight for a glossier, more polished "toy" finish.
 function gloss(ctx, cx, cy, rx, ry, rot = 0) {
   ctx.beginPath()
@@ -233,6 +267,7 @@ function drawLion(ctx) {
     ctx.strokeStyle = 'rgba(140,74,47,0.35)'
     ctx.lineWidth = 0.006
     ctx.stroke()
+    furTexture(ctx, x, y, rx * 1.3, 4, i * 4, 'rgba(140,74,47,0.4)', Math.PI * 2, a)
   }
 
   // Ears
@@ -247,6 +282,7 @@ function drawLion(ctx) {
     ctx.fillStyle = orb(ctx, ex, ey + 0.04, 0.1, '#F2C79A', '#C9741A')
     ctx.ellipse(ex, ey + 0.04, 0.09, 0.1, 0, 0, Math.PI * 2)
     ctx.fill()
+    furTexture(ctx, ex, ey, 0.24, 6, i * 20, 'rgba(140,74,47,0.3)')
     gloss(ctx, ex, ey, 0.19, 0.21)
   })
 
@@ -255,10 +291,12 @@ function drawLion(ctx) {
     ;[0.15, 0.45, 0.72].forEach((yy, i) => {
       const j = seeded(i + (side > 0 ? 10 : 0))
       const x = side * (0.78 - i * 0.05 + j * 0.03)
+      const cy = yy + j * 0.03
       ctx.beginPath()
-      ctx.fillStyle = orb(ctx, x, yy, 0.15, '#FCD87E', i % 2 ? '#D9861F' : '#C9741A')
-      ctx.ellipse(x, yy + j * 0.03, 0.16 + j * 0.02, 0.12, side * 0.3, 0, Math.PI * 2)
+      ctx.fillStyle = orb(ctx, x, cy, 0.15, '#FCD87E', i % 2 ? '#D9861F' : '#C9741A')
+      ctx.ellipse(x, cy, 0.16 + j * 0.02, 0.12, side * 0.3, 0, Math.PI * 2)
       ctx.fill()
+      furTexture(ctx, x, cy, 0.18, 3, i + (side > 0 ? 30 : 60), 'rgba(140,74,47,0.3)')
     })
   })
   ctx.restore()
@@ -448,6 +486,7 @@ function drawBunny(ctx) {
     ctx.fillStyle = '#F2A6C7'
     ctx.ellipse(ex, -0.98, 0.08, 0.36, rot, 0, Math.PI * 2)
     ctx.fill()
+    furTexture(ctx, ex, -0.6, 0.16, 4, i * 15, 'rgba(242,166,199,0.4)', Math.PI, rot + Math.PI / 2)
     gloss(ctx, ex, -1.25, 0.14, 0.22, rot)
   })
 
@@ -515,6 +554,7 @@ function drawCat(ctx) {
     ctx.quadraticCurveTo(ex + 0.05 * dir, -0.96, ex + 0.14 * dir, -0.66)
     ctx.closePath()
     ctx.fill()
+    furTexture(ctx, ex, -0.68, 0.2, 5, i * 25, 'rgba(217,134,31,0.35)', Math.PI * 0.8, -Math.PI / 2)
     gloss(ctx, ex, -0.9, 0.22, 0.22, dir * 0.3)
     ctx.restore()
   })
@@ -559,6 +599,7 @@ function drawUnicorn(ctx) {
   ctx.translate(0, -0.98)
   ctx.rotate(idleSway() * 0.4)
   shadowDot(ctx, 0, -0.2, 0.13, 0.35)
+  glow(ctx, 0, -0.4, 0.22, '#FCD87E')
   ctx.beginPath()
   const hornGrad = ctx.createLinearGradient(0, -0.55, 0, 0.05)
   hornGrad.addColorStop(0, '#FCD87E')

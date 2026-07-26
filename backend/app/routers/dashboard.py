@@ -3,7 +3,15 @@ from sqlalchemy import Integer, cast, func
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Attempt, AttemptOutcome, Child, ExerciseTemplate, GameSession
+from app.models import (
+    Attempt,
+    AttemptOutcome,
+    Child,
+    AssignmentStatus,
+    ExerciseAssignment,
+    ExerciseTemplate,
+    GameSession,
+)
 from app.schemas import CategoryAccuracy, DashboardOut, FlaggedGap, WeeklyPoint
 
 router = APIRouter(tags=["dashboard"])
@@ -38,6 +46,31 @@ def _accuracy_by(db: Session, child_id: int, column) -> list[CategoryAccuracy]:
         accuracy = round((successes / attempts) * 100, 1) if attempts else 0.0
         out.append(CategoryAccuracy(category=r.category, accuracy=accuracy, attempts=attempts))
     return sorted(out, key=lambda c: c.accuracy)
+
+
+def _ensure_assigned(db: Session, child_id: int, exercise_id: int) -> None:
+    """
+    Creates an ExerciseAssignment if the child doesn't already have an
+    active (non-completed) one for this exercise. Called from the dashboard
+    GET as a side effect — not conventional REST, but this is the one place
+    that's already computing which gaps are flagged, and duplicating that
+    logic into a separate write endpoint just to trigger from there would
+    mean keeping two copies of the same threshold logic in sync. The
+    existing-assignment check keeps repeated calls idempotent, so refreshing
+    the dashboard repeatedly doesn't spam duplicate assignments.
+    """
+    existing = (
+        db.query(ExerciseAssignment)
+        .filter(
+            ExerciseAssignment.child_id == child_id,
+            ExerciseAssignment.exercise_id == exercise_id,
+            ExerciseAssignment.status != AssignmentStatus.completed,
+        )
+        .first()
+    )
+    if existing:
+        return
+    db.add(ExerciseAssignment(child_id=child_id, exercise_id=exercise_id))
 
 
 @router.get("/children/{child_id}/dashboard", response_model=DashboardOut)
@@ -104,7 +137,10 @@ def get_dashboard(child_id: int, db: Session = Depends(get_db)):
                 assigned_exercise=matching_exercise.title if matching_exercise else None,
             )
         )
+        if matching_exercise:
+            _ensure_assigned(db, child_id, matching_exercise.id)
     flagged.sort(key=lambda g: {"high": 0, "medium": 1, "low": 2}[g.severity])
+    db.commit()
 
     return DashboardOut(
         child=child,
