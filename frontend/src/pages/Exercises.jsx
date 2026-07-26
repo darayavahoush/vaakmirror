@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
-import { PlayCircle, CheckCircle2, Clock, RefreshCw, ServerCrash, Plus } from 'lucide-react'
+import { CheckCircle2, Clock, RefreshCw, ServerCrash, Plus, PlayCircle } from 'lucide-react'
 import { getExerciseLibrary, getChildExercises, assignExercise, updateAssignmentStatus } from '../lib/api.js'
+import { getExerciseContent } from '../data/exerciseContent.js'
+import ExerciseDemo from '../components/ExerciseDemo.jsx'
 
 const STATUS_STYLE = {
   assigned: { label: 'Assigned', color: 'text-coral', icon: PlayCircle },
@@ -79,29 +81,30 @@ export default function Exercises() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-12">
+    <div className="max-w-4xl mx-auto px-6 py-12">
       <p className="font-mono text-xs uppercase tracking-widest text-mint-dark mb-1">
         Oromotor exercise library
       </p>
-      <h1 className="font-display text-3xl font-bold text-ink mb-3">Practice videos</h1>
+      <h1 className="font-display text-3xl font-bold text-ink mb-3">Practice exercises</h1>
       <p className="text-ink/55 max-w-xl mb-10">
-        Short instructional videos the child watches and copies — mouth, tongue,
-        lip, and cheek drills. Normally these get auto-assigned when the
-        dashboard detects a pattern the games alone can't fix; you can also
-        assign one manually below.
+        Mouth, tongue, lip, and cheek drills, with a quick animated
+        demonstration and step-by-step instructions for each. These get
+        auto-assigned when the dashboard detects a pattern the games alone
+        can't fix; you can also assign one manually below.
       </p>
 
-      <div className="grid md:grid-cols-2 gap-5">
+      <div className="flex flex-col gap-5">
         {library.map((ex) => {
           const assignment = assignmentByExerciseId[ex.id]
           const s = assignment ? STATUS_STYLE[assignment.status] : null
           const Icon = s?.icon
           const isBusy = busyId === ex.id
+          const content = getExerciseContent(ex.title)
 
           return (
-            <div key={ex.id} className="rounded-2xl border border-ink/10 bg-white overflow-hidden flex">
-              <div className="w-36 shrink-0 bg-ink flex items-center justify-center">
-                <PlayCircle size={30} className="text-paper/70" />
+            <div key={ex.id} className="rounded-2xl border border-ink/10 bg-white overflow-hidden flex flex-col sm:flex-row">
+              <div className="sm:w-44 shrink-0 bg-ink flex items-center justify-center p-6">
+                <ExerciseDemo kind={content.demo} className="w-full h-full" />
               </div>
               <div className="p-5 flex-1">
                 <div className="flex items-start justify-between gap-3 mb-2">
@@ -109,6 +112,16 @@ export default function Exercises() {
                   <span className="text-xs text-ink/40 shrink-0">{ex.duration_label}</span>
                 </div>
                 <p className="text-ink/55 text-sm leading-relaxed mb-4">{ex.description}</p>
+
+                <ol className="space-y-1.5 mb-4">
+                  {content.steps.map((step, i) => (
+                    <li key={i} className="flex gap-2.5 text-sm text-ink/70 leading-snug">
+                      <span className="font-mono text-xs text-mint-dark shrink-0 mt-0.5">{i + 1}</span>
+                      <span>{step}</span>
+                    </li>
+                  ))}
+                </ol>
+
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <div className="flex gap-1.5 flex-wrap">
                     {ex.target_categories.map((t) => (
